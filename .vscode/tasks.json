@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Go project",
+            "type": "shell",
+            "command": "go build -o k8s-image .",
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run k8s-image",
+            "type": "shell",
+            "command": "./k8s-image",
+            "group": "test",
+            "problemMatcher": []
+        }
+    ]
+}
