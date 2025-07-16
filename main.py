@@ -49,7 +49,12 @@ def get_registry_digest(image, registry, username=None, password=None):
     if registry == "docker.io":
         manifest_url = f"https://registry-1.docker.io/v2/{repo}/manifests/{tag}"
         headers = {"Accept": "application/vnd.docker.distribution.manifest.v2+json"}
-        resp = requests.get(manifest_url, headers=headers)
+        if username and password:
+            resp = requests.get(manifest_url, headers=headers, auth=(username, password))
+        else:
+            resp = requests.get(manifest_url, headers=headers)
+        if resp.status_code == 401:
+            return ""
         if resp.status_code != 200:
             return ""
         digest = resp.headers.get("Docker-Content-Digest", "")
@@ -78,6 +83,10 @@ with open("registry-local.txt") as f:
 with open("docker-remote.txt") as f:
     remote_registries = [line.strip() for line in f if line.strip() and not line.startswith("//")]
 
+# When calling get_registry_digest for docker.io, pass username and token if available
+DOCKER_USERNAME = os.getenv("DOCKER_USERNAME")
+DOCKER_TOKEN = os.getenv("DOCKER_TOKEN")
+
 # Write sha1-live.csv
 with open("sha1-live.csv", "w", newline="") as csvfile:
     writer = csv.writer(csvfile)
@@ -89,5 +98,8 @@ with open("sha1-live.csv", "w", newline="") as csvfile:
             internal_digests.append(get_registry_digest(img, reg))
         remote_digests = []
         for reg in remote_registries:
-            remote_digests.append(get_registry_digest(img, reg))
+            if reg == "docker.io":
+                remote_digests.append(get_registry_digest(img, reg, DOCKER_USERNAME, DOCKER_TOKEN))
+            else:
+                remote_digests.append(get_registry_digest(img, reg))
         writer.writerow([img, digest, ";".join(internal_digests), ";".join(remote_digests)])
